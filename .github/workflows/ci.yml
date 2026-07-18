@@ -35,3 +35,66 @@ jobs:
 
       - name: Build production image
         run: docker build --tag fulfillflow:ci .
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: [test, container]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Start infrastructure
+        run: docker compose up -d --wait
+
+      - name: Start API
+        env:
+          JWT_SECRET: ci-only-secret-key-with-at-least-32-characters
+          ADMIN_EMAIL: admin@ci.test
+          ADMIN_PASSWORD: ci-admin-password
+        run: |
+          ./mvnw --batch-mode package -DskipTests
+          nohup java -jar target/api-*.jar > app.log 2>&1 &
+          echo $! > app.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://localhost:8080/actuator/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Verify fulfillment flow
+        run: |
+          token=$(curl --fail --silent -X POST http://localhost:8080/api/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@ci.test","password":"ci-admin-password"}' | jq -r '.accessToken')
+          product_id=$(curl --fail --silent -X POST http://localhost:8080/api/products \
+            -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+            -d '{"sku":"CI-ITEM","name":"CI Item","initialQuantity":10}' | jq -r '.id')
+          order_id=$(curl --fail --silent -X POST http://localhost:8080/api/orders \
+            -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+            -d "{\"customerName\":\"CI Customer\",\"items\":[{\"productId\":\"$product_id\",\"quantity\":2}]}" | jq -r '.id')
+          for attempt in $(seq 1 30); do
+            tasks=$(curl --fail --silent http://localhost:8080/api/fulfillment-tasks \
+              -H "Authorization: Bearer $token")
+            if echo "$tasks" | jq -e --arg order_id "$order_id" 'any(.[]; .orderId == $order_id)' > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Show logs and stop services
+        if: always()
+        run: |
+          test ! -f app.log || tail -n 200 app.log
+          docker compose logs --tail 100
+          test ! -f app.pid || kill $(cat app.pid) || true
+          docker compose down -v
