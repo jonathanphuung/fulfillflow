@@ -27,6 +27,7 @@ class OrderControllerTests {
 
     @BeforeEach
     void cleanDatabase() {
+        jdbc.update("DELETE FROM outbox_events");
         jdbc.update("DELETE FROM order_items");
         jdbc.update("DELETE FROM orders");
         jdbc.update("DELETE FROM inventory_reservations");
@@ -69,6 +70,10 @@ class OrderControllerTests {
                 .andExpect(jsonPath("$.quantityReserved").value(2));
         mockMvc.perform(get("/api/inventory/{id}", label.getId()))
                 .andExpect(jsonPath("$.quantityReserved").value(5));
+
+        org.assertj.core.api.Assertions.assertThat(
+                jdbc.queryForObject("SELECT COUNT(*) FROM outbox_events WHERE event_type = 'order.created'", Integer.class))
+                .isEqualTo(1);
     }
 
     @Test
@@ -91,6 +96,9 @@ class OrderControllerTests {
 
         mockMvc.perform(get("/api/inventory/{id}", available.getId()))
                 .andExpect(jsonPath("$.quantityReserved").value(0));
+        org.assertj.core.api.Assertions.assertThat(
+                jdbc.queryForObject("SELECT COUNT(*) FROM outbox_events", Integer.class))
+                .isZero();
     }
 
     @Test
