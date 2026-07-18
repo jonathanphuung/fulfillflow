@@ -56,4 +56,15 @@ public class ReservationService {
         }
         return ReservationResponse.from(reservation);
     }
+
+    @Transactional
+    public boolean expire(UUID reservationId, Instant now) {
+        var reservation = reservations.findForUpdateById(reservationId)
+                .orElseThrow(() -> new ReservationNotFoundException(reservationId));
+        if (!reservation.expire(now)) {
+            return false;
+        }
+        inventory.release(reservation.getProductId(), reservation.getQuantity());
+        return true;
+    }
 }
