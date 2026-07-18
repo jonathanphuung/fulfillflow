@@ -1,6 +1,7 @@
 package com.fulfillflow.catalog;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -146,5 +147,27 @@ class OrderControllerTests {
         mockMvc.perform(post("/api/orders/{id}/start", orderId)).andExpect(status().isOk());
         mockMvc.perform(post("/api/orders/{id}/complete", orderId))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void cancelsOrderAndReleasesReservedStock() throws Exception {
+        var product = products.saveAndFlush(new Product("CANCEL-ITEM", "Cancelled Item", null, 3));
+        var created = mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"customerName":"Taylor Park","items":[
+                                  {"productId":"%s","quantity":2}
+                                ]}
+                                """.formatted(product.getId())))
+                .andReturn().getResponse().getContentAsString();
+        String orderId = JsonPath.read(created, "$.id");
+
+        mockMvc.perform(delete("/api/orders/{id}", orderId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.items[0].status").value("CANCELLED"));
+        mockMvc.perform(get("/api/inventory/{id}", product.getId()))
+                .andExpect(jsonPath("$.quantityOnHand").value(3))
+                .andExpect(jsonPath("$.quantityReserved").value(0));
     }
 }
