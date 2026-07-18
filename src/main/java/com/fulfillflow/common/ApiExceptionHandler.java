@@ -1,6 +1,7 @@
 package com.fulfillflow.common;
 
 import com.fulfillflow.catalog.DuplicateSkuException;
+import com.fulfillflow.catalog.InsufficientStockException;
 import com.fulfillflow.catalog.ProductNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -17,6 +18,11 @@ class ApiExceptionHandler {
 
     @ExceptionHandler(DuplicateSkuException.class)
     ProblemDetail handleConflict(DuplicateSkuException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    ProblemDetail handleInsufficientStock(InsufficientStockException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
     }
 }

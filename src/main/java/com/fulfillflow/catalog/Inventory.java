@@ -54,4 +54,25 @@ class Inventory {
     int getQuantityReserved() {
         return quantityReserved;
     }
+
+    UUID getProductId() {
+        return productId;
+    }
+
+    Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    void adjustOnHand(int quantityChange) {
+        var updatedQuantity = Math.addExact(quantityOnHand, quantityChange);
+        if (updatedQuantity < quantityReserved) {
+            throw new InsufficientStockException(productId, quantityChange, availableQuantity());
+        }
+        quantityOnHand = updatedQuantity;
+        updatedAt = Instant.now();
+    }
+
+    private int availableQuantity() {
+        return quantityOnHand - quantityReserved;
+    }
 }
