@@ -10,7 +10,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 
 @Service
-class ProductService {
+public class ProductService {
 
     private final ProductRepository products;
 
@@ -20,7 +20,7 @@ class ProductService {
 
     @Transactional
     @CacheEvict(cacheNames = {"product", "products"}, allEntries = true)
-    ProductResponse create(CreateProductRequest request) {
+    public ProductResponse create(CreateProductRequest request) {
         var sku = request.sku().trim().toUpperCase(Locale.ROOT);
         if (products.existsBySkuIgnoreCase(sku)) {
             throw new DuplicateSkuException(sku);
@@ -36,7 +36,7 @@ class ProductService {
 
     @Transactional(readOnly = true)
     @Cacheable("products")
-    List<ProductResponse> list() {
+    public List<ProductResponse> list() {
         return products.findAll(Sort.by("name").ascending()).stream()
                 .map(ProductResponse::from)
                 .toList();

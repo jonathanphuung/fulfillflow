@@ -10,7 +10,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 
 @Service
-class OrderService {
+public class OrderService {
     private final OrderRepository orders;
     private final ReservationService reservations;
     private final OutboxService outbox;
@@ -27,7 +27,7 @@ class OrderService {
     }
 
     @Transactional
-    OrderResponse create(CreateOrderRequest request) {
+    public OrderResponse create(CreateOrderRequest request) {
         var order = new FulfillmentOrder(request.customerName().trim());
         for (int index = 0; index < request.items().size(); index++) {
             var item = request.items().get(index);
@@ -42,6 +42,11 @@ class OrderService {
         record(saved, "order.created");
         ordersCreated.increment();
         return OrderResponse.from(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsForCustomer(String customerName) {
+        return orders.existsByCustomerName(customerName);
     }
 
     @Transactional(readOnly = true)

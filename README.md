@@ -55,6 +55,8 @@ Required secrets:
 - `ADMIN_EMAIL`: initial administrator email
 - `ADMIN_PASSWORD`: initial administrator password
 
+Set `DEMO_DATA_ENABLED=true` to create three portfolio products and orders on startup. The seed is idempotent, so restarts do not add duplicates.
+
 The bootstrap administrator is created only when the configured email does not already exist.
 
 ## Useful URLs

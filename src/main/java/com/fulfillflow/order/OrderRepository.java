@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 
 interface OrderRepository extends JpaRepository<FulfillmentOrder, UUID> {
+    boolean existsByCustomerName(String customerName);
+
     @Override
     @EntityGraph(attributePaths = "items")
     Optional<FulfillmentOrder> findById(UUID id);
