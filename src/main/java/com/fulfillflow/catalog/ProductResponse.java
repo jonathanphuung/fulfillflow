@@ -11,7 +11,7 @@ public record ProductResponse(
         boolean active,
         int quantityOnHand,
         int quantityReserved,
-        Instant createdAt) {
+        Instant createdAt) implements java.io.Serializable {
 
     static ProductResponse from(Product product) {
         return new ProductResponse(
