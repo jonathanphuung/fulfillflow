@@ -2,6 +2,7 @@ package com.fulfillflow.order;
 
 import com.fulfillflow.inventory.CreateReservationRequest;
 import com.fulfillflow.inventory.ReservationService;
+import com.fulfillflow.messaging.OutboxService;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,10 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 class OrderService {
     private final OrderRepository orders;
     private final ReservationService reservations;
+    private final OutboxService outbox;
 
-    OrderService(OrderRepository orders, ReservationService reservations) {
+    OrderService(OrderRepository orders, ReservationService reservations, OutboxService outbox) {
         this.orders = orders;
         this.reservations = reservations;
+        this.outbox = outbox;
     }
 
     @Transactional
@@ -28,7 +31,9 @@ class OrderService {
             order.addItem(item.productId(), reservation.id(), item.quantity());
         }
         order.markReady();
-        return OrderResponse.from(orders.save(order));
+        var saved = orders.save(order);
+        record(saved, "order.created");
+        return OrderResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -41,6 +46,7 @@ class OrderService {
     OrderResponse startPicking(UUID id) {
         var order = findForUpdate(id);
         order.startPicking();
+        record(order, "order.picking.started");
         return OrderResponse.from(order);
     }
 
@@ -49,6 +55,7 @@ class OrderService {
         var order = findForUpdate(orderId);
         var item = order.findItem(itemId);
         reservations.complete(item.markPicked());
+        record(order, "order.item.picked");
         return OrderResponse.from(order);
     }
 
@@ -57,6 +64,7 @@ class OrderService {
         var order = findForUpdate(orderId);
         var item = order.findItem(itemId);
         reservations.release(item.markUnavailable());
+        record(order, "order.item.unavailable");
         return OrderResponse.from(order);
     }
 
@@ -64,6 +72,7 @@ class OrderService {
     OrderResponse complete(UUID id) {
         var order = findForUpdate(id);
         order.complete();
+        record(order, "order.completed");
         return OrderResponse.from(order);
     }
 
@@ -71,10 +80,17 @@ class OrderService {
     OrderResponse cancel(UUID id) {
         var order = findForUpdate(id);
         order.cancel().forEach(reservations::release);
+        record(order, "order.cancelled");
         return OrderResponse.from(order);
     }
 
     private FulfillmentOrder findForUpdate(UUID id) {
         return orders.findForUpdateById(id).orElseThrow(() -> new OrderNotFoundException(id));
+    }
+
+    private void record(FulfillmentOrder order, String eventType) {
+        var payload = "{\"orderId\":\"%s\",\"orderNumber\":\"%s\",\"status\":\"%s\"}"
+                .formatted(order.getId(), order.getOrderNumber(), order.getStatus().name());
+        outbox.record(order.getId(), eventType, payload);
     }
 }
