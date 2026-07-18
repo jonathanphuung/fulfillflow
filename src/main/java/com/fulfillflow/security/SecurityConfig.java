@@ -66,7 +66,8 @@ class SecurityConfig {
             return http.csrf(csrf -> csrf.disable())
                     .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                     .authorizeHttpRequests(auth -> auth
-                            .requestMatchers("/api/auth/login", "/actuator/health", "/error").permitAll()
+                            .requestMatchers("/api/auth/login", "/actuator/health", "/error",
+                                    "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/inventory/**").permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
                             .requestMatchers(HttpMethod.PATCH, "/api/inventory/**").hasRole("ADMIN")

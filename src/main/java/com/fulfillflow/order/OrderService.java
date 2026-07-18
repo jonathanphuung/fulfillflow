@@ -6,17 +6,24 @@ import com.fulfillflow.messaging.OutboxService;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 
 @Service
 class OrderService {
     private final OrderRepository orders;
     private final ReservationService reservations;
     private final OutboxService outbox;
+    private final Counter ordersCreated;
+    private final Counter ordersCompleted;
 
-    OrderService(OrderRepository orders, ReservationService reservations, OutboxService outbox) {
+    OrderService(OrderRepository orders, ReservationService reservations, OutboxService outbox,
+            MeterRegistry meterRegistry) {
         this.orders = orders;
         this.reservations = reservations;
         this.outbox = outbox;
+        this.ordersCreated = meterRegistry.counter("fulfillflow.orders.created");
+        this.ordersCompleted = meterRegistry.counter("fulfillflow.orders.completed");
     }
 
     @Transactional
@@ -33,6 +40,7 @@ class OrderService {
         order.markReady();
         var saved = orders.save(order);
         record(saved, "order.created");
+        ordersCreated.increment();
         return OrderResponse.from(saved);
     }
 
@@ -73,6 +81,7 @@ class OrderService {
         var order = findForUpdate(id);
         order.complete();
         record(order, "order.completed");
+        ordersCompleted.increment();
         return OrderResponse.from(order);
     }
 
