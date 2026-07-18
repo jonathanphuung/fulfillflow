@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-class ReservationService {
+public class ReservationService {
 
     private static final Duration RESERVATION_TTL = Duration.ofMinutes(15);
 
@@ -21,7 +21,7 @@ class ReservationService {
     }
 
     @Transactional
-    ReservationResponse create(UUID productId, CreateReservationRequest request, String idempotencyKey) {
+    public ReservationResponse create(UUID productId, CreateReservationRequest request, String idempotencyKey) {
         var existing = reservations.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             return ReservationResponse.from(existing.get());
@@ -38,7 +38,7 @@ class ReservationService {
     }
 
     @Transactional
-    ReservationResponse release(UUID reservationId) {
+    public ReservationResponse release(UUID reservationId) {
         var reservation = reservations.findById(reservationId)
                 .orElseThrow(() -> new ReservationNotFoundException(reservationId));
         if (reservation.release()) {
