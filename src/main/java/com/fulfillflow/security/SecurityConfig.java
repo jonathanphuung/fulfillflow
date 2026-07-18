@@ -70,6 +70,7 @@ class SecurityConfig {
                             .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/inventory/**").permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
                             .requestMatchers(HttpMethod.PATCH, "/api/inventory/**").hasRole("ADMIN")
+                            .requestMatchers("/api/users/**").hasRole("ADMIN")
                             .requestMatchers("/api/**").hasAnyRole("ADMIN", "WORKER")
                             .anyRequest().authenticated())
                     .oauth2ResourceServer(oauth -> oauth.jwt(jwt ->

@@ -7,6 +7,7 @@ import com.fulfillflow.inventory.ReservationNotFoundException;
 import com.fulfillflow.order.OrderNotFoundException;
 import com.fulfillflow.order.OrderItemNotFoundException;
 import com.fulfillflow.order.InvalidOrderStateException;
+import com.fulfillflow.security.UserAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,6 +34,11 @@ class ApiExceptionHandler {
 
     @ExceptionHandler(InvalidOrderStateException.class)
     ProblemDetail handleInvalidOrderState(InvalidOrderStateException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    ProblemDetail handleDuplicateUser(UserAlreadyExistsException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
     }
 }
