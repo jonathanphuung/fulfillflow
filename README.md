@@ -1,0 +1,28 @@
+# FulfillFlow
+
+FulfillFlow is an order fulfillment and inventory management API. It models the workflow of reserving stock, assigning fulfillment tasks, and tracking an order from submission to completion.
+
+## Stack
+
+- Java 21 and Spring Boot
+- PostgreSQL and Flyway
+- Maven
+- Docker Compose
+
+## Local setup
+
+Install Java 21 and Docker, then start PostgreSQL:
+
+```bash
+docker compose up -d
+```
+
+Run the API:
+
+```bash
+./mvnw spring-boot:run
+```
+
+On Windows, use `mvnw.cmd spring-boot:run`.
+
+The health endpoint is available at `http://localhost:8080/actuator/health`.
