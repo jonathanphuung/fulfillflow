@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
@@ -89,5 +90,61 @@ class OrderControllerTests {
 
         mockMvc.perform(get("/api/inventory/{id}", available.getId()))
                 .andExpect(jsonPath("$.quantityReserved").value(0));
+    }
+
+    @Test
+    void completesPickingWorkflowAndConsumesStock() throws Exception {
+        var picked = products.saveAndFlush(new Product("PICKED", "Picked Item", null, 6));
+        var missing = products.saveAndFlush(new Product("MISSING", "Missing Item", null, 4));
+        var created = mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"customerName":"Sam Rivera","items":[
+                                  {"productId":"%s","quantity":2},
+                                  {"productId":"%s","quantity":1}
+                                ]}
+                                """.formatted(picked.getId(), missing.getId())))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String orderId = JsonPath.read(created, "$.id");
+        String pickedItemId = JsonPath.read(created, "$.items[0].id");
+        String missingItemId = JsonPath.read(created, "$.items[1].id");
+
+        mockMvc.perform(post("/api/orders/{id}/start", orderId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PICKING"));
+        mockMvc.perform(post("/api/orders/{orderId}/items/{itemId}/pick", orderId, pickedItemId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].status").value("PICKED"));
+        mockMvc.perform(post("/api/orders/{orderId}/items/{itemId}/unavailable", orderId, missingItemId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[1].status").value("UNAVAILABLE"));
+        mockMvc.perform(post("/api/orders/{id}/complete", orderId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+
+        mockMvc.perform(get("/api/inventory/{id}", picked.getId()))
+                .andExpect(jsonPath("$.quantityOnHand").value(4))
+                .andExpect(jsonPath("$.quantityReserved").value(0));
+        mockMvc.perform(get("/api/inventory/{id}", missing.getId()))
+                .andExpect(jsonPath("$.quantityOnHand").value(4))
+                .andExpect(jsonPath("$.quantityReserved").value(0));
+    }
+
+    @Test
+    void rejectsCompletingOrderWithUnresolvedItems() throws Exception {
+        var product = products.saveAndFlush(new Product("PENDING-ITEM", "Pending Item", null, 2));
+        var created = mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"customerName":"Alex Chen","items":[
+                                  {"productId":"%s","quantity":1}
+                                ]}
+                                """.formatted(product.getId())))
+                .andReturn().getResponse().getContentAsString();
+        String orderId = JsonPath.read(created, "$.id");
+
+        mockMvc.perform(post("/api/orders/{id}/start", orderId)).andExpect(status().isOk());
+        mockMvc.perform(post("/api/orders/{id}/complete", orderId))
+                .andExpect(status().isConflict());
     }
 }
