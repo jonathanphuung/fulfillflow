@@ -72,6 +72,22 @@ class Inventory {
         updatedAt = Instant.now();
     }
 
+    void reserve(int quantity) {
+        if (quantity > availableQuantity()) {
+            throw new InsufficientStockException(productId, quantity, availableQuantity());
+        }
+        quantityReserved = Math.addExact(quantityReserved, quantity);
+        updatedAt = Instant.now();
+    }
+
+    void release(int quantity) {
+        if (quantity > quantityReserved) {
+            throw new IllegalStateException("Cannot release more stock than is reserved");
+        }
+        quantityReserved -= quantity;
+        updatedAt = Instant.now();
+    }
+
     private int availableQuantity() {
         return quantityOnHand - quantityReserved;
     }
