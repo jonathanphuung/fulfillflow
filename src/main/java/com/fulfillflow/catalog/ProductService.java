@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 
 @Service
 class ProductService {
@@ -17,6 +19,7 @@ class ProductService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"product", "products"}, allEntries = true)
     ProductResponse create(CreateProductRequest request) {
         var sku = request.sku().trim().toUpperCase(Locale.ROOT);
         if (products.existsBySkuIgnoreCase(sku)) {
@@ -32,6 +35,7 @@ class ProductService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable("products")
     List<ProductResponse> list() {
         return products.findAll(Sort.by("name").ascending()).stream()
                 .map(ProductResponse::from)
@@ -39,6 +43,7 @@ class ProductService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "product", key = "#id")
     ProductResponse get(UUID id) {
         return products.findById(id)
                 .map(ProductResponse::from)

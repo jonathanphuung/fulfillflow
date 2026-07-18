@@ -7,6 +7,7 @@ FulfillFlow is an order fulfillment and inventory management API. It models the 
 - Java 21 and Spring Boot
 - PostgreSQL and Flyway
 - RabbitMQ
+- Redis
 - Maven
 - Docker Compose
 

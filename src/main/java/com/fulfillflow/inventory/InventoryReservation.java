@@ -80,4 +80,13 @@ class InventoryReservation {
         updatedAt = Instant.now();
         return true;
     }
+
+    boolean expire(Instant now) {
+        if (status != ReservationStatus.ACTIVE || expiresAt.isAfter(now)) {
+            return false;
+        }
+        status = ReservationStatus.EXPIRED;
+        updatedAt = now;
+        return true;
+    }
 }
