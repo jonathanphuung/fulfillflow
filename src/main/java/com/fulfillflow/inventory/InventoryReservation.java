@@ -68,4 +68,16 @@ class InventoryReservation {
         updatedAt = Instant.now();
         return true;
     }
+
+    boolean complete() {
+        if (status == ReservationStatus.COMPLETED) {
+            return false;
+        }
+        if (status != ReservationStatus.ACTIVE) {
+            throw new IllegalStateException("Only active reservations can be completed");
+        }
+        status = ReservationStatus.COMPLETED;
+        updatedAt = Instant.now();
+        return true;
+    }
 }

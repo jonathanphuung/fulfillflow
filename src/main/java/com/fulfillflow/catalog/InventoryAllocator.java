@@ -23,6 +23,11 @@ public class InventoryAllocator {
         findForUpdate(productId).release(quantity);
     }
 
+    @Transactional
+    public void fulfill(UUID productId, int quantity) {
+        findForUpdate(productId).fulfill(quantity);
+    }
+
     private Inventory findForUpdate(UUID productId) {
         return inventory.findByProductIdForUpdate(productId)
                 .orElseThrow(() -> new ProductNotFoundException(productId));

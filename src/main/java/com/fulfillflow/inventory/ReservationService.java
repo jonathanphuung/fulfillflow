@@ -39,10 +39,20 @@ public class ReservationService {
 
     @Transactional
     public ReservationResponse release(UUID reservationId) {
-        var reservation = reservations.findById(reservationId)
+        var reservation = reservations.findForUpdateById(reservationId)
                 .orElseThrow(() -> new ReservationNotFoundException(reservationId));
         if (reservation.release()) {
             inventory.release(reservation.getProductId(), reservation.getQuantity());
+        }
+        return ReservationResponse.from(reservation);
+    }
+
+    @Transactional
+    public ReservationResponse complete(UUID reservationId) {
+        var reservation = reservations.findForUpdateById(reservationId)
+                .orElseThrow(() -> new ReservationNotFoundException(reservationId));
+        if (reservation.complete()) {
+            inventory.fulfill(reservation.getProductId(), reservation.getQuantity());
         }
         return ReservationResponse.from(reservation);
     }
