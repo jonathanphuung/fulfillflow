@@ -88,6 +88,15 @@ class Inventory {
         updatedAt = Instant.now();
     }
 
+    void fulfill(int quantity) {
+        if (quantity > quantityReserved) {
+            throw new IllegalStateException("Cannot fulfill more stock than is reserved");
+        }
+        quantityReserved -= quantity;
+        quantityOnHand -= quantity;
+        updatedAt = Instant.now();
+    }
+
     private int availableQuantity() {
         return quantityOnHand - quantityReserved;
     }

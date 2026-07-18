@@ -60,4 +60,31 @@ class OrderItem {
     UUID getReservationId() { return reservationId; }
     int getQuantity() { return quantity; }
     OrderItemStatus getStatus() { return status; }
+
+    UUID markPicked() {
+        if (status != OrderItemStatus.RESERVED) {
+            throw new InvalidOrderStateException("Only reserved items can be picked");
+        }
+        status = OrderItemStatus.PICKED;
+        updatedAt = Instant.now();
+        return reservationId;
+    }
+
+    UUID markUnavailable() {
+        if (status != OrderItemStatus.RESERVED) {
+            throw new InvalidOrderStateException("Only reserved items can be marked unavailable");
+        }
+        status = OrderItemStatus.UNAVAILABLE;
+        updatedAt = Instant.now();
+        return reservationId;
+    }
+
+    UUID cancel() {
+        if (status != OrderItemStatus.RESERVED) {
+            return null;
+        }
+        status = OrderItemStatus.CANCELLED;
+        updatedAt = Instant.now();
+        return reservationId;
+    }
 }
