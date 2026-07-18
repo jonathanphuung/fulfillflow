@@ -25,3 +25,13 @@ jobs:
 
       - name: Run tests
         run: ./mvnw --batch-mode verify
+
+  container:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Build production image
+        run: docker build --tag fulfillflow:ci .
