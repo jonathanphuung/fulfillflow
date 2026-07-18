@@ -6,6 +6,7 @@ FulfillFlow is an order fulfillment and inventory management API. It models the 
 
 - Java 21 and Spring Boot
 - PostgreSQL and Flyway
+- RabbitMQ
 - Maven
 - Docker Compose
 
@@ -25,4 +26,4 @@ Run the API:
 
 On Windows, use `mvnw.cmd spring-boot:run`.
 
-The health endpoint is available at `http://localhost:8080/actuator/health`.
+The health endpoint is available at `http://localhost:8080/actuator/health`. RabbitMQ management is available at `http://localhost:15672` using `fulfillflow` for both the local username and password.
